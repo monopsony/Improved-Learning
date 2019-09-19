@@ -8,7 +8,7 @@ Sample usage:
 python run.py -s 2 -n
 ```
 
--s N arguments tells the script to do 2 iteration **steps**  
+-s N arguments tells the script to do N iteration **steps**  
 -n arguments tells the script to start a **new** run  
 The -n argument is currently recommended for *all* uses as resuming has not been extensively tested.
 
