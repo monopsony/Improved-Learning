@@ -1,0 +1,10 @@
+_pycache_
+custom_files/_pycache_
+private/
+custom.sh
+datasets/
+Info/
+log.txt
+out.txt
+sgdml_cv_
+storage/
