@@ -1,0 +1,15 @@
+
+ In sgdml_train_init, datasets/uracil_chopped.npz,200,1000,10000   
+ In sgdml_train, /Users/me/ownCloud/Studies/Doc/Improved-Learning/Info/dataset.npz,/Users/me/ownCloud/Studies/Doc/Improved-Learning/datasets/uracil_chopped.npz,600,1000,10000   [93mExecuting stage: init_train[0m
+[93mExecuting stage: save_init[0m
+[93mExecuting stage: cluster_init[0m
+Start Agglomerative Clustering
+Agglomerative Clustering done
+[93mExecuting stage: compute_prediction_error[0m
+Calculating errors
+[93mExecuting stage: generate_subset[0m
+[93mExecuting stage: reclustering[0m
+Start Agglomerative Clustering
+Agglomerative Clustering done
+[93mExecuting stage: generate_training_data[0m
+[93mExecuting stage: step_train[0m
