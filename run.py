@@ -54,7 +54,7 @@ progress_stages=[
 stage_functions={
     'init_train':task_funcs.init_train_func,
     'cluster_init':task_funcs.cluster_init,
-    'save_init':task_funcs.save_file,
+    'save_init':task_funcs.save_file_init,
     'save':task_funcs.save_file,
     'compute_prediction_error':task_funcs.compute_prediction_error,
     'generate_subset':task_funcs.generate_subset,
@@ -76,9 +76,13 @@ def load_save_file(arg_dic):
             dic=pickle.loads(file.read())
 
         db=data_base(para,arg_dic)
-        if dic['stages']:
-            for k,v in dic['stages'].items():
-                db.stages[k]=v
+
+        #which stage to start from when reloading
+        reload_stage='compute_prediction_error'
+        for k in progress_stages:
+            if k==reload_stage:
+                break
+            db.stages[k]=True
 
         if dic.get('training_indices',False) is not None:
             db.training_indices=dic['training_indices']
@@ -157,7 +161,6 @@ class data_base():
         return True
 
     def proceed(self):
-
         if getattr(self,'current_stage',None) is None:
             return
 
@@ -170,6 +173,7 @@ class data_base():
 
         stage_functions[stage](self)
         self.stages[stage]=True
+
 
     def save_file(self):
         path=self.info_path+self.save_file_name

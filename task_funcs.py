@@ -12,6 +12,9 @@ def init_train_func(self):
     initial_indices_func=find_function(para['initial_indices'],para_file,predict,descri)
     self.new_training_indices=initial_indices_func(self,self.info_path+self.para['model_new_name'],self.para['initial_dataset'])
 
+def save_file_init(self):
+    self.save_file()
+
 def save_file(self):
     self.save_file()
 

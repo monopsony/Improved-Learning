@@ -95,4 +95,31 @@ def within_cluster_lowest_variance(db,cl_ind,err):
 
     return new_ind
 
+def within_cluster_highest_error(db,cl_ind,err):
+    new_ind=[]
+    for ind in cl_ind:
+        cl_err=err[ind]
+        argmax=np.argmax(cl_err)
+        new_ind.append(ind[argmax])
+
+    return new_ind
+
+def within_high_error_cluster_lowest_variance(db,cl_ind,err):
+    new_ind=[]
+    var=db.vars[db.para['generate_training_data']['var_index']]
+    N=db.para['generate_training_data']['n_he_clusters']
+
+    #find highest error clusters
+    mse=[np.mean(err[x]) for x in cl_ind]
+    argsort=np.argsort(mse)
+    new_cl_ind=np.array(cl_ind)[argsort[-N:]]
+
+    for ind in new_cl_ind:
+        R=var[ind]
+        lv_ind=lowest_variance_ind(R)
+        new_ind.append(ind[lv_ind])
+
+    return new_ind
+
+
 
