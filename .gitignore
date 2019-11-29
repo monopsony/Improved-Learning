@@ -8,3 +8,7 @@ log.txt
 out.txt
 sgdml_cv_
 storage/
+.DS*
+test.sh
+*.npz
+

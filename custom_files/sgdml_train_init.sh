@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
-printf "\n In sgdml_train_init, %s %s %s %s" "$1,$2,$3,$4"
+printf "\n In sgdml_train_init, %s %s %s %s" "$1,$2,$3,$4,$5"
 
-sgdml all -o $1 $2 $3 $4 >> out.txt
+sgdml all -o $1 $3 $4 $5 >> out.txt
 
-mv *?-train*?-sym*?.npz Info/model_new.npz
+mv ${2}*?train*?${3}*?sym*?.npz Info/model_new  

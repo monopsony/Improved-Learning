@@ -1,7 +1,7 @@
 from util import*
 import predict,descri
 import numpy as np
-from sklearn.cluster import MiniBatchKMeans
+from sklearn.cluster import KMeans
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.pairwise import euclidean_distances
 
@@ -145,7 +145,7 @@ def kmeans_clustering(data_base,indices,clustering_index):
         data=data_base.vars[para["var_index"]]
 
 
-    cluster_labels=MiniBatchKMeans(n_clusters=n_clusters,init="k-means++").fit_predict(data)
+    cluster_labels=KMeans(n_clusters=n_clusters,init="k-means++").fit_predict(data)
 
     for i in range(n_clusters):
         ind=np.concatenate(np.argwhere(cluster_labels==i).tolist())
@@ -180,7 +180,7 @@ def cluster_do(self,init_indices,para_ind):
 
 
 
-    #perform further clusterisations
+    #perform further clusterisations  
     for i in cluster_para_ind[1:]:
         cl_ind_new=[]
         for cl in cl_ind:
@@ -197,4 +197,21 @@ def cluster_do(self,init_indices,para_ind):
 
     return cl_ind
 
+def worst_N_clusters(self,N,*args):
+    mse=self.cluster_err
+    cl_ind=self.init_cluster_indices
+    sorted_ind=np.argsort(mse)
+    clusters=np.array(cl_ind)[sorted_ind[-N:]]
+    ind=np.concatenate(clusters)
+    return ind
+
+def cluster_above_mse(self,fact,*args):
+    mse=np.array(self.cluster_err)
+    mmse=np.mean(mse)
+    cl_ind=self.init_cluster_indices
+    cl_ind_new=np.concatenate(np.argwhere(mse>mmse*fact))
+    print_debug(f"adding {len(cl_ind_new)} clusters in cluster_above_mse")
+    clusters=np.array(cl_ind)[cl_ind_new]
+    ind=np.concatenate(clusters)
+    return ind
 

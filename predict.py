@@ -81,15 +81,51 @@ def predict_E_sgdml(self,cluster_R):
 
     return cluster_E
 
-def save_sgdml_npz_data(self,ind):
-    data_set=self.data_set
+def save_sgdml_npz_data(self,ind,name):
+    dataset=self.dataset
     tbl={}
-    for k,v in data_set.items():
+    for k,v in dataset.items():
         if k=='F' or k=='R' or k=='E':
             tbl[k]=v[ind]
         else:
             tbl[k]=v 
 
-    np.savez_compressed(self.info_path+self.para['step_dataset_name'],**tbl)
+    np.savez_compressed(os.path.join(self.info_path,name),**tbl)
+    self.step_dataset_path=os.path.join(self.info_path,name)
 
+def load_model_MD17(self,model_path):
+    import torch
+    try:
+        model=torch.load(model_path,map_location='cpu') #cba with cuda 
+    except Exception as e:
+        print(e)
+        sys.exit(2)
 
+    self.MD17_model=model
+
+def predict_E_MD17(self,indices):
+    m=self.MD17_model
+    test=self.dataset.create_subset(indices)
+
+    import schnetpack as spk 
+    test_loader=spk.AtomsLoader(test,batch_size=1000)
+    preds=[]
+    for count,batch in enumerate(test_loader):
+        #TBA currently only supports single batch
+        preds.append(m(batch)['energy'].detach().cpu().numpy())
+
+    return np.concatenate(preds)
+
+def predict_F_MD17(self,indices):
+    m=self.MD17_model
+    test=self.dataset.create_subset(indices)
+    import schnetpack as spk 
+    test_loader=spk.AtomsLoader(test,batch_size=1000)
+    preds=[]
+    for count,batch in enumerate(test_loader):
+        #TBA currently only supports single batch
+        preds.append(m(batch)['forces'].detach().cpu().numpy())
+
+    F=np.concatenate(preds)
+    F=F.reshape(len(F),-1)
+    return F

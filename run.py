@@ -5,41 +5,8 @@ from para import parameters as para
 import para as para_file
 
 
-
-def load_dataset(dataset_path):
-    '''
-    Loads the dataset file (.xyz or .npz) and saves it into a dictionary. 
-    
-    Parameters:
-        -dataset_path:
-            String corresponding to the path to the dataset file
-        
-    Returns:
-        -data:
-            The dataset
-                
-    '''
-    ext=os.path.splitext(dataset_path)[-1]
-    
-    #xyz file
-    if ext==".xyz":
-        try:
-            file=open(dataset_path)
-            dat=read_concat_ext_xyz(file)
-            data={ 'R':np.array(dat[0]),'z':dat[1],'E':np.reshape( dat[2] , (len(dat[2]),1) ),'F':np.array(dat[3]) }
-        except getopt.GetoptError as err:
-            print(err)
-            return False
-    #npz file        
-    elif ext==".npz":
-        try:
-            data=np.load(dataset_path)
-        except Exception as e:
-            print_error(str(e))
-            
-    return data
-
 progress_stages=[
+    'load_dataset',
     'init_train',
     'save_init',
     'cluster_init',
@@ -52,6 +19,7 @@ progress_stages=[
 ]
 
 stage_functions={
+    'load_dataset':task_funcs.load_dataset,
     'init_train':task_funcs.init_train_func,
     'cluster_init':task_funcs.cluster_init,
     'save_init':task_funcs.save_file_init,
@@ -119,23 +87,6 @@ class data_base():
         self.stages={k:False for k in progress_stages}
         self.vars=[]
 
-        self.data_set=load_dataset(para['initial_dataset'])
-        data_set=self.data_set
-
-        #get the needed vars ready
-        #parses through data set and uses the given functions to generate the needed variables
-        #f.e. interatomic distances and energies
-        for i in range(len(para['var_funcs'])):
-            f_name,f=para['var_funcs'][i],None
-            if callable(f_name):
-                f=f_name
-            else:
-                f=(getattr(descri,f_name,None)) or (getattr(para,f_name,None))
-                if not callable(f):
-                    print("Could not find function or valid function name in para.var_funcs, index {}".format(i))
-                    sys.exit(2)
-
-            self.vars.append(f(data_set))
 
     save_file_name='save.p'
     current_step=0
@@ -173,7 +124,6 @@ class data_base():
 
         stage_functions[stage](self)
         self.stages[stage]=True
-
 
     def save_file(self):
         path=self.info_path+self.save_file_name
@@ -246,30 +196,27 @@ class data_base():
         for i in range(1): #IN CASE we want to calculate more errors further down the line (taken from cluster-error)
 
             error_func=find_function(para['error_func'],para,globals(),descri)
-            
             input_values=self.vars[para['input_var_index']]
             comparison_values=self.vars[para['comparison_var_index']]
             predict_values=self.predict(input_values)
-
             err=error_func(predict_values,comparison_values)
             mse=err.mean()
-
             self.sample_err=err
-            self.cluster_err=[ err[x].mean() for x in cluster_indices]
+            self.cluster_err=[err[x].mean() for x in cluster_indices]
 
 def parse_arguments(argv):
-    '''
-    This function parses through the arguments and acts accordingly.
-    '''
-
     dic={
         'total_steps':0,
         'new_file':False,
+        'init_model':False,
+        'init_indices':False,
+        'cluster_path':None,
+        'dataset_path':None,
     }
 
     
     try:
-        opts,args=getopt.getopt(argv,"hs:n")
+        opts,args=getopt.getopt(argv,"hs:ni:i:c:d:")
     except getopt.GetoptError as err:
         print(str(err))
         sys.exit(2)
@@ -285,11 +232,24 @@ def parse_arguments(argv):
 
         elif opt=='-n':
             dic['new_file']=True
+
+        elif opt=='-i':
+            if not dic['init_model']:
+                dic['init_model']=str(arg)
+            else:
+                dic['init_indices']=str(arg)
+
+        elif opt=='-c':
+            dic['cluster_path']=str(arg)
+
+        elif opt=='-d':
+            dic['dataset_path']=str(arg)
+
     
     return dic
 
 if __name__=='__main__':
-
+    print_debug("IN MAIN")
     arg_dic=parse_arguments(sys.argv[1:])
 
     if arg_dic['new_file']:
@@ -303,6 +263,7 @@ if __name__=='__main__':
 
     #db=data_base(para)
     db=load_save_file(arg_dic)
+    print_debug("FILES SAVED")
 
     while_count,while_break=0,False
     while (db.check_current_stage()) and (not while_break):

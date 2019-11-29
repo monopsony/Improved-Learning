@@ -7,7 +7,7 @@ import hashlib as hashlib
 path = os.path.dirname(os.path.realpath(__file__))
 
 def saveData(data, indices, name):
-  
+
   if isinstance(data,basestring):
     database = np.load(data)
   else:

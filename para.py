@@ -1,14 +1,26 @@
 parameters={
 
-	'model_name':'model.npz', #not actually a parameter atm, dont touch
-	'model_new_name':'model_new.npz', #idem dont touch
-	'step_dataset_name':'dataset.npz', #idem dont touch
+	'model_name':'model', #not actually a parameter atm, dont touch
+	'model_new_name':'model_new', #idem dont touch
+	'step_dataset_name':'dataset', #idem dont touch
 
-	'initial_dataset':'datasets/uracil.npz',
 	'storage_name':'uracil_test', #name of the folder in which to save results
 
+	'load_dataset':{
+		'func':'load_MD17_file_molecule',  #load_MD17_file_molecule
+			#args are [db object, args below]
+		'args':['func:get_d_arg',None,'datasets/ethanol_db_E_F_R.npz'], #get_d_arg gets the -d argument given 
+
+		'var_funcs':{
+			0:'MD17_R_to_dist',
+			1:'MD17_extract_E',
+			2:'MD17_extract_F',
+			3:'db_indices',
+		}, #end of 'var_funcs'
+	},
+
 	'init_train':{
-		'prepare_dataset':'sgdml_dataset_fix_path.py',
+		'prepare_dataset':None,
 								#function called before the training session to 'prepare' dataset.
 								#can be set to None if no preparation is needed (prining dataset info/making a backup/whatever)
 								#.py or .sh
@@ -16,33 +28,29 @@ parameters={
 
 		'prepare_dataset_args':[],
 								#if (additional) args are needed, define them here
-								#first arg actually passed is always the (full) path to the data set
+								#first arg is always the database object
 
-		'file':'sgdml_train_init.sh',
+		'file':'MD17_train_init.py',
 								#needs to create a model file of the same name 
 								#as the one given by the model_name parameter
 								#args are given below
 
-		'args':[200,1000,10000],
-								#note: first argument passed to the function is ALWAYS the path to the data set
-								#in other words, parameters['init_train']['args'][0] is the SECOND argument
-						   		#to the .sh script / .py run function
+		'args':['func:get_d_arg',200,1000,500],
+						   		#passed to the .sh script / .py run function
+						   		#(commonly needs to pass the name of the dataset, f.e. as given by -d with 'func:get_d_arg')
 						   		#function outputs can be passed by passing 'func:{func_name}'
 						   		#the actual argument passed will be the (first) return of that function call
 						   		#Argument passed to the these custom functions (inside 'args') is just the db object
 
-		'initial_indices':'sgdml_initial_indices',
+		'initial_indices':'get_info_split_train_indices',
 								#the function here needs to return a list that includes all indices 
 								#(corresponding to the initial data set) that were used to create the initial model
 								#the arguments given are the db, the path to the model and path to the initial data set
-	}, #end of 'init_train'
 
-	'var_funcs':{
-		0:'r_to_desc',
-		1:'extract_E',
-		2:'extract_R_concat',
-		3:'extract_F_concat',
-	}, #end of 'var_funcs'
+
+		'initial_indices_preload':'get_info_split_train_indices_preload',
+
+	}, #end of 'init_train'
 
 	'clusters':{
 		'init_cluster':[0,1],
@@ -55,8 +63,8 @@ parameters={
 		#according to scheme 0 and then the resulting clusters will be re-clustered according to scheme 1
 		0:{
 		    'type':'Agglomerative', #types: Agglomerative, Kmeans
-		    'n_clusters':10,
-		    'initial_number':5000,
+		    'n_clusters':12,
+		    'initial_number':10000, 
 		    'distance_matrix_function':'distance_matrix_euclidean',
 		    'linkage':'complete',
 		    'cluster_choice_criterion':'smallest_max_distance_euclidean',
@@ -73,7 +81,7 @@ parameters={
 		    'type':'Agglomerative',
 		    'n_clusters':400,  ##func name (string) or flat number
 		    #'n_clusters_args':[400],
-		    'initial_number':1, #1 means the entire subset
+		    'initial_number':10000, #1 means the entire subset
 		    'distance_matrix_function':'distance_matrix_euclidean',
 		    'linkage':'complete',
 		    'cluster_choice_criterion':'smallest_max_distance_euclidean',
@@ -82,48 +90,47 @@ parameters={
 	}, #end of 'clusters'
 
 	'predict_error':{
-		'load_func':'load_model_sgdml',
-		'predict_func':'predict_F_sgdml',
-		'input_var_index':2,
-		'predict_func_index':0,
-		'comparison_var_index':3,
+		'load_func':'load_model_MD17',
+		'predict_func':'predict_F_MD17',
+		'input_var_index':3,
+		'comparison_var_index':2,
 		'error_func':'mean_squared_error_sample_wise',
 		'file_name':'mean_squared_error',
 	}, #end of 'predict_error'
 
 	'generate_subset':{
-		'func':'worst_N_clusters', #(self,err,mse,cl_ind)
-		'args':[10],
+		'func':'cluster_above_mse', #(self,*args)
+		'args':[1],
 	}, #end of 'generate_subset'
 
 	'generate_training_data':{
-		'indices_func':'within_cluster_lowest_variance', #args given are db, recluster indices and sample-wise error array
-		'var_index':0, #lowest variance with respect to what?
-		'save_func':'save_sgdml_npz_data', #args given are db and indices as given by the indices_func
+		'indices_func':'within_cluster_weighted_err_N', #args given are db, recluster indices and sample-wise error array
+		'n_points':200,
+		'save_func':'save_split_MD17', #args given are db and indices as given by the indices_func (can be None) and step_dataset_name
+		'n_val':1000, #only used by f.e. save_split_MD17 when needed to pre-create validation set
+
 	},
 
 	'step_train':{
-		'file':'sgdml_train.sh', #first argument passed is (full) path to the new dataset, created by step above (save_func)
-								 #second argument if (full) path to the initial dataset
+		'file':'MD17_train.py', #first argument passed is (full) path to the new dataset, created by step above (save_func)
+								 #second argument is (full) path to the initial dataset
 								 #further arguments are defined below
 								 #must save the model to Info/model_name where model_name is given by 'model_new_name' parameter (top)
 
-		'args':['func:npz_dataset_get_size',1000,10000], 
+		'args':['func:get_d_arg',None,None,500], 
 								#Argument passed to the custom functions (inside 'args') is just the db object
-								#by default (sGDML), 'func:npz_dataset_get_size' simply sets the first argument (number of trianing points) 
-								#to be the size of the dataset generated by the previous step (all points in the dataset)
 	},#end of 'step_train'
 
 } #end of parameters
 
 
-def npz_dataset_get_size(db):
+def len_new_training_indices(db):
 	return len(db.new_training_indices)
 
 
-
-
-
+def get_d_arg(self):
+	d=self.args['dataset_path']
+	return d
 
 
 
